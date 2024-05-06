@@ -75,6 +75,7 @@ public enum RemoteConfigsSystem {
         private let handler: RemoteConfigsHandler
         private var observers: [UUID: () -> Void] = [:]
         private var didStartListen = false
+        private var didStartFetch = false
         private var cancellation: RemoteConfigsCancellation?
 
         init(_ handler: RemoteConfigsHandler) {
@@ -83,15 +84,16 @@ public enum RemoteConfigsSystem {
 
         func fetch(completion: @escaping (Error?) -> Void) {
             handler.fetch { error in
-                if error == nil {
-                    self.lock.withWriterLock {
+                self.lock.withWriterLock {
+                    if error == nil {
                         self._didFetch = true
+                        self.observers.values.forEach { $0() }
                     }
                 }
                 completion(error)
             }
-            lock.withReaderLockVoid {
-                observers.values.forEach { $0() }
+            lock.withWriterLock {
+                didStartFetch = true
             }
         }
 
@@ -100,6 +102,10 @@ public enum RemoteConfigsSystem {
         }
 
         func listen(_ observer: @escaping () -> Void) -> RemoteConfigsCancellation {
+            let didFetch = self.didFetch
+            if !didFetch, !lock.withReaderLock({ didStartFetch }) {
+                fetch { _ in }
+            }
             defer {
                 if didFetch {
                     observer()
