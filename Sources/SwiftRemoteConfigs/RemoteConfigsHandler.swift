@@ -7,8 +7,8 @@ import Foundation
 ///
 public protocol RemoteConfigsHandler: _SwiftRemoteConfigsSendableAnalyticsHandler {
 
-    var didLoad: Bool { get }
-    func load(observe: @escaping () -> Void) -> () -> Void
+    func fetch(completion: @escaping (Error?) -> Void)
+    func listen(_ listener: @escaping () -> Void) -> RemoteConfigsCancellation?
     func value(for key: String) -> CustomStringConvertible?
 }
 

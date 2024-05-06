@@ -3,8 +3,7 @@ import Foundation
 /// A pseudo-remote configs handler that can be used to send messages to multiple other remote configs handlers.
 public struct MultiplexRemoteConfigsHandler: RemoteConfigsHandler {
 
-    public var didLoad: Bool { handlers.allSatisfy(\.didLoad) }
-	private var handlers: [MultiplexRemoteConfigsHandler]
+	private let handlers: [MultiplexRemoteConfigsHandler]
 
 	public init(handlers: [MultiplexRemoteConfigsHandler]) {
 		self.handlers = handlers
@@ -19,10 +18,18 @@ public struct MultiplexRemoteConfigsHandler: RemoteConfigsHandler {
         return nil
     }
 
-    public func load(observe: @escaping () -> Void) -> () -> Void {
-        let cancellables = handlers.map { $0.load(observe: observe) }
-        return {
-            cancellables.forEach { $0() }
+    public func fetch(completion: @escaping (Error?) -> Void) {
+        handlers.forEach { handler in
+            handler.fetch { error in
+                
+            }
+        }
+    }
+
+    public func listen(_ listener: @escaping () -> Void) -> RemoteConfigsCancellation? {
+        let cancellables = handlers.compactMap { $0.listen(listener) }
+        return cancellables.isEmpty ? nil : RemoteConfigsCancellation {
+            cancellables.forEach { $0.cancel() }
         }
     }
 }

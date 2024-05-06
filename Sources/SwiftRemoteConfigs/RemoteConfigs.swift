@@ -5,18 +5,13 @@ import Foundation
 public struct RemoteConfigs {
 
 	/// The remote configs handler responsible for querying and storing values.
-	@usableFromInline
-	var handler: RemoteConfigsHandler
+    let handler: RemoteConfigsSystem.Handler
     private var values: [String: Any] = [:]
 
 	/// Initializes the `RemoteConfigs` instance with the default remote configs handler.
 	public init() {
-        self.init(handler: RemoteConfigsSystem.handler)
+        self.handler = RemoteConfigsSystem.handler
 	}
-
-    init(handler: RemoteConfigsHandler) {
-        self.handler = handler
-    }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<Value>>) -> Value {
         let key = Keys()[keyPath: keyPath]
@@ -29,36 +24,31 @@ public struct RemoteConfigs {
         return key.defaultValue()
     }
 
-    public var didLoad: Bool { handler.didLoad }
+    public var didFetch: Bool { handler.didFetch }
 
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    public func load() async {
+    public func fetch() async throws {
         let loader = Loader()
         let lock = ReadWriteLock()
-        await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
+        _ = try await withCheckedThrowingContinuation { continuation in
+            lock.withWriterLock {
+                loader.completion = continuation.resume(returning:)
+            }
+            handler.fetch { [weak loader] error in
                 lock.withWriterLock {
-                    loader.completion = continuation.resume
-                    loader.cancellation = handler.load { [weak loader] in
-                        lock.withWriterLock {
-                            loader?.complete()
-                            loader?.cancel()
-                        }
+                    if let error = error {
+                        loader?.complete(.failure(error))
+                    } else {
+                        loader?.complete(.success(()))
                     }
                 }
             }
-        } onCancel: {
-            loader.cancel()
         }
     }
 
-    @discardableResult
-    public func observe(_ observer: @escaping (RemoteConfigs) -> Void) -> () -> Void {
-        if didLoad {
-            observer(self)
-        }
-        return handler.load {
-            observer(self)
+    public func listen(_ listener: @escaping (RemoteConfigs) -> Void) -> RemoteConfigsCancellation {
+        handler.listen {
+            listener(self)
         }
     }
 
@@ -98,26 +88,26 @@ public extension RemoteConfigs {
     }
 
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    func loadIfNeeded() async {
-        guard !didLoad else { return }
-        await load()
+    func fetchIfNeeded() async throws {
+        guard !didFetch else { return }
+        try await fetch()
     }
 
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    func loadIfNeeded<T>(_ keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<T>>) async -> T {
-        await loadIfNeeded()
+    func fetchIfNeeded<T>(_ keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<T>>) async throws -> T {
+        try await fetchIfNeeded()
         return self[dynamicMember: keyPath]
     }
 
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
-    func load<T>(_ keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<T>>) async -> T {
-        await load()
+    func fetch<T>(_ keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<T>>) async throws -> T {
+        try await fetch()
         return self[dynamicMember: keyPath]
     }
 
     @discardableResult
-    func observe<T>(_ keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<T>>, _ observer: @escaping (T) -> Void) -> () -> Void {
-        observe {
+    func listen<T>(_ keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<T>>, _ observer: @escaping (T) -> Void) -> RemoteConfigsCancellation {
+        listen {
             observer($0[dynamicMember: keyPath])
         }
     }
@@ -158,13 +148,13 @@ private final class Loader {
     private var didCancelled = false
     private var didComplete = false
     var cancellation: () -> Void = {}
-    var completion: () -> Void = {}
+    var completion: (Result<Void, Error>) -> Void = { _ in }
     
-    func complete() {
+    func complete(_ result: Result<Void, Error>) {
         guard !didComplete else { return }
         didComplete = true
-        completion()
-        completion = {}
+        completion(result)
+        completion = { _ in }
     }
     
     func cancel() {

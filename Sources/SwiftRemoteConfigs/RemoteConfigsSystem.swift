@@ -5,7 +5,7 @@ import Foundation
 /// implementation.
 public enum RemoteConfigsSystem {
 
-	private static let _handler = HandlerBox { NOOPRemoteConfigsHandler.instance }
+	private static let _handler = HandlerBox(NOOPRemoteConfigsHandler.instance)
 
 	/// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
 	/// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
@@ -13,18 +13,18 @@ public enum RemoteConfigsSystem {
 	///
 	/// - parameters:
 	///     - handler: The desired remote configs backend implementation.
-	public static func bootstrap(_ handler: @autoclosure @escaping () -> RemoteConfigsHandler) {
+	public static func bootstrap(_ handler: RemoteConfigsHandler) {
 		_handler.replaceHandler(handler, validate: true)
 	}
 
 	/// for our testing we want to allow multiple bootstrapping
-	static func bootstrapInternal(_ handler: @autoclosure @escaping () -> RemoteConfigsHandler) {
+	static func bootstrapInternal(_ handler: RemoteConfigsHandler) {
 		_handler.replaceHandler(handler, validate: false)
 	}
 
 	/// Returns a reference to the configured handler.
-	static var handler: RemoteConfigsHandler {
-		_handler.underlying()
+	static var handler: Handler {
+		_handler.underlying
 	}
 
 	/// Acquire a writer lock for the duration of the given block.
@@ -38,24 +38,24 @@ public enum RemoteConfigsSystem {
 	private final class HandlerBox {
 
 		private let lock = ReadWriteLock()
-		fileprivate var _underlying: () -> RemoteConfigsHandler
+		fileprivate var handler: Handler
 		private var initialized = false
 
-		init(_ underlying: @escaping () -> RemoteConfigsHandler) {
-			_underlying = underlying
+		init(_ underlying: RemoteConfigsHandler) {
+            handler = Handler(underlying)
 		}
 
-		func replaceHandler(_ factory: @escaping () -> RemoteConfigsHandler, validate: Bool) {
+		func replaceHandler(_ factory: RemoteConfigsHandler, validate: Bool) {
 			withWriterLock {
 				precondition(!validate || !self.initialized, "remote configs system can only be initialized once per process.")
-				self._underlying = factory
+				self.handler = Handler(factory)
 				self.initialized = true
 			}
 		}
 
-		var underlying: () -> RemoteConfigsHandler {
+		var underlying: Handler {
 			lock.withReaderLock {
-				self._underlying
+                handler
 			}
 		}
 
@@ -63,6 +63,74 @@ public enum RemoteConfigsSystem {
 			try lock.withWriterLock(body)
 		}
 	}
+
+    final class Handler {
+        var didFetch: Bool {
+            lock.withReaderLock {
+                _didFetch
+            }
+        }
+        private let lock = ReadWriteLock()
+        private var _didFetch = false
+        private let handler: RemoteConfigsHandler
+        private var observers: [UUID: () -> Void] = [:]
+        private var didStartListen = false
+        private var cancellation: RemoteConfigsCancellation?
+
+        init(_ handler: RemoteConfigsHandler) {
+            self.handler = handler
+        }
+
+        func fetch(completion: @escaping (Error?) -> Void) {
+            handler.fetch { error in
+                if error == nil {
+                    self.lock.withWriterLock {
+                        self._didFetch = true
+                    }
+                }
+                completion(error)
+            }
+            lock.withReaderLockVoid {
+                observers.values.forEach { $0() }
+            }
+        }
+
+        func value(for key: String) -> CustomStringConvertible? {
+            handler.value(for: key)
+        }
+
+        func listen(_ observer: @escaping () -> Void) -> RemoteConfigsCancellation {
+            defer {
+                if didFetch {
+                    observer()
+                }
+            }
+            let id = UUID()
+            lock.withWriterLockVoid {
+                observers[id] = observer
+                if !didStartListen {
+                    didStartListen = true
+                    cancellation = handler.listen { [weak self] in
+                        self?.lock.withReaderLockVoid {
+                            self?.observers.values.forEach { $0() }
+                        }
+                    }
+                }
+            }
+            return RemoteConfigsCancellation { self.cancel(id: id) }
+        }
+
+        private func cancel(id: UUID) {
+            lock.withWriterLockVoid {
+                observers.removeValue(forKey: id)
+                if observers.isEmpty {
+                    cancellation?.cancel()
+                    cancellation = nil
+                    didStartListen = false
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Sendable support helpers

@@ -2,7 +2,6 @@ import Foundation
 
 public struct NOOPRemoteConfigsHandler: RemoteConfigsHandler {
 
-    public var didLoad: Bool { true }
 	public static let instance = NOOPRemoteConfigsHandler()
 
 	public init() {
@@ -12,8 +11,11 @@ public struct NOOPRemoteConfigsHandler: RemoteConfigsHandler {
         return nil
     }
 
-    public func load(observe: @escaping () -> Void) -> () -> Void {
-        observe()
-        return {}
+    public func fetch(completion: @escaping (Error?) -> Void) {
+        completion(nil)
+    }
+
+    public func listen(_ listener: @escaping () -> Void) -> RemoteConfigsCancellation? {
+        return nil
     }
 }

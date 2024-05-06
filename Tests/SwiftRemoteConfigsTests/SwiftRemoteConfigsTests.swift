@@ -7,9 +7,9 @@ final class SwiftRemoteConfigsTests: XCTestCase {
         ("testReadDefaultValue", testReadDefaultValue),
         ("testReadValue", testReadValue),
         ("testRewriteValue", testRewriteValue),
-        ("testObserve", testObserve),
-        ("testDidLoad", testDidLoad),
-        ("testLoadIfNeeded", testLoadIfNeeded),
+        ("testListen", testListen),
+        ("testDidFetch", testDidFetch),
+        ("testFetchIfNeeded", testFetchIfNeeded),
     ]
 
 	var handler = MockRemoteConfigsHandler()
@@ -46,44 +46,44 @@ final class SwiftRemoteConfigsTests: XCTestCase {
         XCTAssertEqual(value, "value")
     }
     
-    func testObserve() {
+    func testListen() {
         // Arrange
-        var loaded = false
-        RemoteConfigs().observe { _ in
-            loaded = true
+        var fetched = false
+        RemoteConfigs().listen { _ in
+            fetched = true
         }
         
         // Act
         self.handler.values = ["key": "value"]
         
         // Assert
-        XCTAssertTrue(loaded)
+        XCTAssertTrue(fetched)
     }
     
-    func testDidLoad() async {
+    func testDidFetch() async throws {
         // Arrange
         let remoteConfigs = RemoteConfigs()
         
         // Act
-        let didLoad = remoteConfigs.didLoad
+        let didFetch = remoteConfigs.didFetch
         
         // Assert
-        XCTAssertFalse(didLoad)
+        XCTAssertFalse(didFetch)
         
         // Act
         self.handler.values = ["key": "value"]
-        await remoteConfigs.loadIfNeeded()
+        try await remoteConfigs.fetchIfNeeded()
         // Assert
-        XCTAssertTrue(remoteConfigs.didLoad)
+        XCTAssertTrue(remoteConfigs.didFetch)
     }
     
-    func testLoadIfNeeded() async {
+    func testFetchIfNeeded() async throws {
         // Arrange
         let remoteConfigs = RemoteConfigs()
         
         // Act
         self.handler.values = ["key": "value"]
-        let value = await remoteConfigs.loadIfNeeded(\.testKey)
+        let value = try await remoteConfigs.fetchIfNeeded(\.testKey)
         
         // Assert
         XCTAssertEqual(value, "value")
