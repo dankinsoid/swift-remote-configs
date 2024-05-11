@@ -9,7 +9,7 @@ public protocol RemoteConfigsHandler: _SwiftRemoteConfigsSendableAnalyticsHandle
 
     func fetch(completion: @escaping (Error?) -> Void)
     func listen(_ listener: @escaping () -> Void) -> RemoteConfigsCancellation?
-    func value(for key: String) -> CustomStringConvertible?
+    func value(for key: String) -> String?
 }
 
 // MARK: - Sendable support helpers

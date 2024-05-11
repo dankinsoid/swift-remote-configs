@@ -3,7 +3,7 @@ import Foundation
 /// Mock RemoteConfigsHandler for testing
 public final class MockRemoteConfigsHandler: RemoteConfigsHandler {
 
-    public var values: [String: CustomStringConvertible] {
+    public var values: [String: String] {
         get {
             lock.withReaderLock { _values }
         }
@@ -15,19 +15,19 @@ public final class MockRemoteConfigsHandler: RemoteConfigsHandler {
         }
     }
     private var observers: [UUID: () -> Void] = [:]
-    private var _values: [String: CustomStringConvertible]
+    private var _values: [String: String]
     private let lock = ReadWriteLock()
 
-    public init(_ values: [String: CustomStringConvertible] = [:]) {
+    public init(_ values: [String: String] = [:]) {
         _values = values
     }
 
-    public func value(for key: String) -> CustomStringConvertible? {
+    public func value(for key: String) -> String? {
         values[key]
     }
 
     public func set<Value>(_ value: Value, for keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<Value>>) where Value: CustomStringConvertible {
-        values[RemoteConfigs.Keys()[keyPath: keyPath].name] = value
+        values[RemoteConfigs.Keys()[keyPath: keyPath].name] = value.description
     }
 
     public func fetch(completion: @escaping (Error?) -> Void) {

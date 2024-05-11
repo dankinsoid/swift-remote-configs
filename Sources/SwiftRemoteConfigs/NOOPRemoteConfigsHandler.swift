@@ -7,7 +7,7 @@ public struct NOOPRemoteConfigsHandler: RemoteConfigsHandler {
 	public init() {
     }
 
-    public func value(for key: String) -> CustomStringConvertible? {
+    public func value(for key: String) -> String? {
         return nil
     }
 

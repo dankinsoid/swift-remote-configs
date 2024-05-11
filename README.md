@@ -54,8 +54,10 @@ To become a compatible remote configs backend that all SwiftRemoteConfigs consum
 an RemoteConfigsHandler or remote configs backend implementation is anything that conforms to the following protocol
 ```swift
 public protocol RemoteConfigsHandler {
-    
-    func value(for key: String) -> CustomStringConvertible?
+
+    func fetch(completion: @escaping (Error?) -> Void)
+    func listen(_ listener: @escaping () -> Void) -> RemoteConfigsCancellation?
+    func value(for key: String) -> String?
 }
 ```
 Where `value(for key: String)` is a function that returns a value for a given key.

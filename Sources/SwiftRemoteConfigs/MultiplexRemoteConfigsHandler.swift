@@ -9,7 +9,7 @@ public struct MultiplexRemoteConfigsHandler: RemoteConfigsHandler {
 		self.handlers = handlers
 	}
 
-    public func value(for key: String) -> CustomStringConvertible? {
+    public func value(for key: String) -> String? {
         for handler in handlers {
             if let value = handler.value(for: key) {
                 return value
