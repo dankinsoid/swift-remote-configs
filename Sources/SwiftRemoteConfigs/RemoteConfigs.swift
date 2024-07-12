@@ -120,7 +120,6 @@ public extension RemoteConfigs.Keys.Key where Value: LosslessStringConvertible {
     /// - Parameters:
     ///   - key: The key string.
     ///   - default: The default value to use if the key is not found.
-    @_disfavoredOverload
     init(
         _ key: String,
         default defaultValue: Value
@@ -144,19 +143,42 @@ public extension RemoteConfigs.Keys.Key where Value: RawRepresentable, Value.Raw
     }
 }
 
+public extension RemoteConfigs.Keys.Key where Value: Decodable {
+    
+    /// Returns the key instance.
+    ///
+    /// - Parameters:
+    ///   - key: The key string.
+    ///   - default: The default value to use if the key is not found.
+    ///   - decoder: The JSON decoder to use for decoding the value.
+    @_disfavoredOverload
+    init(
+        _ key: String,
+        default defaultValue: Value,
+        decoder: JSONDecoder = JSONDecoder()
+    ) {
+        self.init(
+            key,
+            decode: { $0.data(using: .utf8).flatMap { try? decoder.decode(Value.self, from: $0) } },
+            default: defaultValue
+        )
+    }
+}
+
 private final class Loader {
+
     private var didCancelled = false
     private var didComplete = false
     var cancellation: () -> Void = {}
     var completion: (Result<Void, Error>) -> Void = { _ in }
-    
+
     func complete(_ result: Result<Void, Error>) {
         guard !didComplete else { return }
         didComplete = true
         completion(result)
         completion = { _ in }
     }
-    
+
     func cancel() {
         guard !didCancelled else { return }
         didCancelled = true
