@@ -3,15 +3,14 @@ import Foundation
 /// A structure for handling remote configs and reading them from a remote configs provider.
 @dynamicMemberLookup
 public struct RemoteConfigs {
-
-	/// The remote configs handler responsible for querying and storing values.
-    let handler: RemoteConfigsSystem.Handler
+    /// The remote configs handler responsible for querying and storing values.
+    public let handler: RemoteConfigsSystem.Handler
     private var values: [String: Any] = [:]
 
-	/// Initializes the `RemoteConfigs` instance with the default remote configs handler.
-	public init() {
+    /// Initializes the `RemoteConfigs` instance with the default remote configs handler.
+    public init() {
         self.handler = RemoteConfigsSystem.handler
-	}
+    }
 
     public subscript<Value>(dynamicMember keyPath: KeyPath<RemoteConfigs.Keys, RemoteConfigs.Keys.Key<Value>>) -> Value {
         let key = Keys()[keyPath: keyPath]
@@ -53,11 +52,9 @@ public struct RemoteConfigs {
     }
 
     public struct Keys {
-
         public init() {}
 
         public struct Key<Value> {
-
             public let name: String
             public let defaultValue: () -> Value
             public let decode: (String) -> Value?
@@ -67,7 +64,7 @@ public struct RemoteConfigs {
                 decode: @escaping (String) -> Value?,
                 default defaultValue: @escaping @autoclosure () -> Value
             ) {
-                self.name = key
+                name = key
                 self.decode = decode
                 self.defaultValue = defaultValue
             }
@@ -76,7 +73,6 @@ public struct RemoteConfigs {
 }
 
 public extension RemoteConfigs {
-
     /// Overwrites the value of a key.
     /// - Parameters:
     ///   - key: The key to overwrite.
@@ -114,7 +110,6 @@ public extension RemoteConfigs {
 }
 
 public extension RemoteConfigs.Keys.Key where Value: LosslessStringConvertible {
-
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -129,7 +124,6 @@ public extension RemoteConfigs.Keys.Key where Value: LosslessStringConvertible {
 }
 
 public extension RemoteConfigs.Keys.Key where Value: RawRepresentable, Value.RawValue == String {
-
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -144,7 +138,6 @@ public extension RemoteConfigs.Keys.Key where Value: RawRepresentable, Value.Raw
 }
 
 public extension RemoteConfigs.Keys.Key where Value: Decodable {
-    
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -166,11 +159,10 @@ public extension RemoteConfigs.Keys.Key where Value: Decodable {
 }
 
 private final class Loader {
-
     private var didCancelled = false
     private var didComplete = false
     var cancellation: () -> Void = {}
-    var completion: (Result<Void, Error>) -> Void = { _ in }
+    var completion: (sending Result<Void, Error>) -> Void = { _ in }
 
     func complete(_ result: Result<Void, Error>) {
         guard !didComplete else { return }
@@ -188,7 +180,7 @@ private final class Loader {
 }
 
 #if compiler(>=5.6)
-extension RemoteConfigs: @unchecked Sendable {}
-extension RemoteConfigs.Keys: Sendable {}
-extension RemoteConfigs.Keys.Key: @unchecked Sendable {}
+    extension RemoteConfigs: @unchecked Sendable {}
+    extension RemoteConfigs.Keys: Sendable {}
+    extension RemoteConfigs.Keys.Key: @unchecked Sendable {}
 #endif
