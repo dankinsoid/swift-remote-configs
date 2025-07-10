@@ -96,7 +96,7 @@ public enum RemoteConfigsSystem {
             }
         }
 
-        func value(for key: String) -> CustomStringConvertible? {
+        public func value(for key: String) -> CustomStringConvertible? {
             handler.value(for: key)
         }
 
