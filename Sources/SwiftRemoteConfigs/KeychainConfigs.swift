@@ -8,15 +8,17 @@ import Foundation
 	public final class KeychainConfigsHandler: ConfigsHandler {
 		public let service: String?
 		public let secClass: SecClass
+		public let iCloudSync: Bool
 		private var observers: [UUID: () -> Void] = [:]
 		private let lock = ReadWriteLock()
 
 		/// The default Keychain token cache service.
 		public static var `default` = KeychainConfigsHandler()
 
-		public init(service: String? = nil, class secClass: SecClass = .genericPassowrd) {
+		public init(service: String? = nil, class secClass: SecClass = .genericPassowrd, iCloudSync: Bool = false) {
 			self.service = service
 			self.secClass = secClass
+			self.iCloudSync = iCloudSync
 		}
 
 		public func value(for key: String) -> String? {
@@ -48,6 +50,10 @@ import Foundation
 				kSecReturnRef as String: kCFBooleanTrue!,
 				kSecMatchLimit as String: kSecMatchLimitAll,
 			]
+			
+			if iCloudSync {
+				query[kSecAttrSynchronizable as String] = kCFBooleanTrue
+			}
 			if let service {
 				query[kSecAttrService as String] = service
 			}
@@ -204,8 +210,15 @@ import Foundation
 
 		private func configureAccess(query: inout [String: Any]) {
 			query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+			
+			if iCloudSync {
+				query[kSecAttrSynchronizable as String] = kCFBooleanTrue
+			}
+			
 			#if os(macOS)
-				query[kSecUseDataProtectionKeychain as String] = true
+				if #available(macOS 10.15, *) {
+					query[kSecUseDataProtectionKeychain as String] = true
+				}
 			#endif
 		}
 	}

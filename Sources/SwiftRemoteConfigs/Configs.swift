@@ -84,7 +84,7 @@ public struct Configs {
 
             public init(
                 _ key: String,
-                from readCategory: ConfigsCategory = .all,
+                from readCategory: ConfigsCategory = .default,
                 decode: @escaping (String) -> Value?,
                 default defaultValue: @escaping @autoclosure () -> Value
             ) {
@@ -105,7 +105,7 @@ public struct Configs {
 
             public init(
                 _ key: String,
-                from readCategory: ConfigsCategory = .all,
+                from readCategory: ConfigsCategory = .default,
                 to writeCategory: ConfigsCategory? = nil,
                 decode: @escaping (String) -> Value?,
                 encode: @escaping (Value) -> String?,

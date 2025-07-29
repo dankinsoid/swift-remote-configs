@@ -7,6 +7,7 @@ public struct ConfigsCategory: RawRepresentable, Hashable, OptionSet, Comparable
         self.rawValue = rawValue
     }
 
+    public static var `default` = ConfigsCategory.all
     public static let all = ConfigsCategory(rawValue: 0xFFFF_FFFF)
     public static let secure = ConfigsCategory(rawValue: 0x0000_0001)
     public static let insecure = ConfigsCategory(rawValue: 0x0000_0002)

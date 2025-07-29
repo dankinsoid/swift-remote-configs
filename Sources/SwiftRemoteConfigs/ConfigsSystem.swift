@@ -109,19 +109,19 @@ public enum ConfigsSystem {
             }
         }
 
-        public func value(for key: String, in category: ConfigsCategory = .all) -> CustomStringConvertible? {
+        public func value(for key: String, in category: ConfigsCategory = .default) -> CustomStringConvertible? {
             handler(for: category).value(for: key)
         }
 
-        public func writeValue(_ value: String?, for key: String, in category: ConfigsCategory = .all) throws {
+        public func writeValue(_ value: String?, for key: String, in category: ConfigsCategory = .default) throws {
             try handler(for: category).writeValue(value, for: key)
         }
 
-        public func allKeys(in category: ConfigsCategory = .all) -> Set<String> {
+        public func allKeys(in category: ConfigsCategory = .default) -> Set<String> {
             handler(for: category).allKeys() ?? []
         }
 
-        public func clear(in category: ConfigsCategory = .all) throws {
+        public func clear(in category: ConfigsCategory = .default) throws {
             try handler(for: category).clear()
         }
 
