@@ -91,6 +91,11 @@ let package = Package(
 $ swift build
 ```
 
+## Implementations
+There are a few implementations of RemoteConfigsHandler that you can use in your application:
+
+- [Firebase Remote Configs](https://github.com/dankinsoid/swift-firebase-tools)
+
 ## Author
 
 dankinsoid, voidilov@gmail.com
