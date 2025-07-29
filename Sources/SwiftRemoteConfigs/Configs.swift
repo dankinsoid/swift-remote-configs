@@ -6,6 +6,7 @@ public typealias RemoteConfigs = Configs
 /// A structure for handling remote configs and reading them from a remote configs provider.
 @dynamicMemberLookup
 public struct Configs {
+
     /// The remote configs handler responsible for querying and storing values.
     public let handler: ConfigsSystem.Handler
     private var values: [String: Any] = [:]
@@ -49,22 +50,15 @@ public struct Configs {
 
     @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
     public func fetch() async throws {
-        let loader = Loader()
-        let lock = ReadWriteLock()
-        _ = try await withCheckedThrowingContinuation { continuation in
-            lock.withWriterLock {
-                loader.completion = continuation.resume(returning:)
-            }
-            handler.fetch { [weak loader] error in
-                lock.withWriterLock {
-                    if let error = error {
-                        loader?.complete(.failure(error))
-                    } else {
-                        loader?.complete(.success(()))
-                    }
-                }
-            }
-        }
+		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+			handler.fetch { error in
+				if let error {
+					continuation.resume(throwing: error)
+				} else {
+					continuation.resume(returning: ())
+				}
+			}
+		}
     }
 
     public func listen(_ listener: @escaping (Configs) -> Void) -> ConfigsCancellation {
@@ -136,6 +130,7 @@ public protocol WritableConfigKey<Value>: ConfigKey {
 }
 
 public extension Configs {
+
     /// Overwrites the value of a key.
     /// - Parameters:
     ///   - key: The key to overwrite.
@@ -180,13 +175,15 @@ public extension Configs.Keys.Key where Value: LosslessStringConvertible {
     ///   - default: The default value to use if the key is not found.
     init(
         _ key: String,
+		from readCategory: ConfigsCategory = .default,
         default defaultValue: Value
     ) {
-        self.init(key, decode: Value.init, default: defaultValue)
+		self.init(key, from: readCategory, decode: Value.init, default: defaultValue)
     }
 }
 
 public extension Configs.Keys.Key where Value: RawRepresentable, Value.RawValue == String {
+
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -194,13 +191,15 @@ public extension Configs.Keys.Key where Value: RawRepresentable, Value.RawValue 
     ///   - default: The default value to use if the key is not found.
     init(
         _ key: String,
+		from readCategory: ConfigsCategory = .default,
         default defaultValue: Value
     ) {
-        self.init(key, decode: Value.init, default: defaultValue)
+		self.init(key, from: readCategory, decode: Value.init, default: defaultValue)
     }
 }
 
 public extension Configs.Keys.WritableKey where Value: LosslessStringConvertible {
+
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -208,13 +207,16 @@ public extension Configs.Keys.WritableKey where Value: LosslessStringConvertible
     ///   - default: The default value to use if the key is not found.
     init(
         _ key: String,
+		from readCategory: ConfigsCategory = .default,
+		to writeCategory: ConfigsCategory? = nil,
         default defaultValue: Value
     ) {
-        self.init(key, decode: Value.init, encode: \.description, default: defaultValue)
+		self.init(key, from: readCategory, to: writeCategory, decode: Value.init, encode: \.description, default: defaultValue)
     }
 }
 
 public extension Configs.Keys.WritableKey where Value: RawRepresentable, Value.RawValue == String {
+
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -222,13 +224,16 @@ public extension Configs.Keys.WritableKey where Value: RawRepresentable, Value.R
     ///   - default: The default value to use if the key is not found.
     init(
         _ key: String,
+		from readCategory: ConfigsCategory = .default,
+  to writeCategory: ConfigsCategory? = nil,
         default defaultValue: Value
     ) {
-        self.init(key, decode: Value.init, encode: \.rawValue, default: defaultValue)
+		self.init(key, from: readCategory, to: writeCategory, decode: Value.init, encode: \.rawValue, default: defaultValue)
     }
 }
 
 public extension Configs.Keys.Key where Value: Decodable {
+
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -238,11 +243,13 @@ public extension Configs.Keys.Key where Value: Decodable {
     @_disfavoredOverload
     init(
         _ key: String,
+		from readCategory: ConfigsCategory = .default,
         default defaultValue: Value,
         decoder: JSONDecoder = JSONDecoder()
     ) {
         self.init(
             key,
+			from: readCategory,
             decode: { $0.data(using: .utf8).flatMap { try? decoder.decode(Value.self, from: $0) } },
             default: defaultValue
         )
@@ -250,6 +257,7 @@ public extension Configs.Keys.Key where Value: Decodable {
 }
 
 public extension Configs.Keys.WritableKey where Value: Codable {
+
     /// Returns the key instance.
     ///
     /// - Parameters:
@@ -260,35 +268,19 @@ public extension Configs.Keys.WritableKey where Value: Codable {
     init(
         _ key: String,
         default defaultValue: Value,
-        decoder: JSONDecoder = JSONDecoder()
+		from readCategory: ConfigsCategory = .default,
+  to writeCategory: ConfigsCategory? = nil,
+        decoder: JSONDecoder = JSONDecoder(),
+		encoder: JSONEncoder = JSONEncoder()
     ) {
         self.init(
             key,
+			from: readCategory,
+			to: writeCategory,
             decode: { $0.data(using: .utf8).flatMap { try? decoder.decode(Value.self, from: $0) } },
-            encode: { try? String(data: JSONEncoder().encode($0), encoding: .utf8) },
+			encode: { try? String(data: encoder.encode($0), encoding: .utf8) },
             default: defaultValue
         )
-    }
-}
-
-private final class Loader {
-    private var didCancelled = false
-    private var didComplete = false
-    var cancellation: () -> Void = {}
-    var completion: (sending Result<Void, Error>) -> Void = { _ in }
-
-    func complete(_ result: Result<Void, Error>) {
-        guard !didComplete else { return }
-        didComplete = true
-        completion(result)
-        completion = { _ in }
-    }
-
-    func cancel() {
-        guard !didCancelled else { return }
-        didCancelled = true
-        cancellation()
-        cancellation = {}
     }
 }
 
