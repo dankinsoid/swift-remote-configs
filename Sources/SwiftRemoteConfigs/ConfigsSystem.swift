@@ -1,10 +1,14 @@
 import Foundation
 
-/// The `RemoteConfigsSystem` is a global facility where the default remote configs backend implementation (`RemoteConfigsHandler`) can be
-/// configured. `RemoteConfigsSystem` is set up just once in a given program to set up the desired remote configs backend
+@available(*, deprecated, renamed: "ConfigsSystem")
+public typealias RemoteConfigsSystem = ConfigsSystem
+
+/// The `ConfigsSystem` is a global facility where the default remote configs backend implementation (`ConfigsHandler`) can be
+/// configured. `ConfigsSystem` is set up just once in a given program to set up the desired remote configs backend
 /// implementation.
-public enum RemoteConfigsSystem {
-    private static let _handler = HandlerBox(NOOPRemoteConfigsHandler.instance)
+public enum ConfigsSystem {
+
+	private static let _handler = HandlerBox([.all: NOOPConfigsHandler.instance])
 
     /// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
     /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
@@ -12,13 +16,23 @@ public enum RemoteConfigsSystem {
     ///
     /// - parameters:
     ///     - handler: The desired remote configs backend implementation.
-    public static func bootstrap(_ handler: RemoteConfigsHandler) {
-        _handler.replaceHandler(handler, validate: true)
+    public static func bootstrap(_ handler: ConfigsHandler) {
+		bootstrap([.all: handler])
     }
 
+	/// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
+ /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
+ /// lead to undefined behaviour, most likely a crash.
+ ///
+ /// - parameters:
+ ///     - handler: The desired remote configs backend implementation.
+ public static func bootstrap(_ handlers: [ConfigsCategory: ConfigsHandler]) {
+	 _handler.replaceHandler(handlers, validate: true)
+ }
+
     /// for our testing we want to allow multiple bootstrapping
-    static func bootstrapInternal(_ handler: RemoteConfigsHandler) {
-        _handler.replaceHandler(handler, validate: false)
+    static func bootstrapInternal(_ handlers: [ConfigsCategory: ConfigsHandler]) {
+        _handler.replaceHandler(handlers, validate: false)
     }
 
     /// Returns a reference to the configured handler.
@@ -35,15 +49,16 @@ public enum RemoteConfigsSystem {
     }
 
     private final class HandlerBox {
+	
         private let lock = ReadWriteLock()
         fileprivate var handler: Handler
         private var initialized = false
 
-        init(_ underlying: RemoteConfigsHandler) {
+        init(_ underlying: [ConfigsCategory: ConfigsHandler]) {
             handler = Handler(underlying)
         }
 
-        func replaceHandler(_ factory: RemoteConfigsHandler, validate: Bool) {
+        func replaceHandler(_ factory: [ConfigsCategory: ConfigsHandler], validate: Bool) {
             withWriterLock {
                 precondition(!validate || !self.initialized, "remote configs system can only be initialized once per process.")
                 self.handler = Handler(factory)
@@ -63,6 +78,7 @@ public enum RemoteConfigsSystem {
     }
 
     public final class Handler {
+
         var didFetch: Bool {
             lock.withReaderLock {
                 _didFetch
@@ -71,18 +87,18 @@ public enum RemoteConfigsSystem {
 
         private let lock = ReadWriteLock()
         private var _didFetch = false
-        private let handler: RemoteConfigsHandler
+		private let handlers: [(ConfigsCategory, ConfigsHandler)]
         private var observers: [UUID: () -> Void] = [:]
         private var didStartListen = false
         private var didStartFetch = false
-        private var cancellation: RemoteConfigsCancellation?
+        private var cancellation: ConfigsCancellation?
 
-        init(_ handler: RemoteConfigsHandler) {
-            self.handler = handler
+        init(_ handlers: [ConfigsCategory: ConfigsHandler]) {
+			self.handlers = handlers.sorted { $0.0 < $1.0 }
         }
 
         func fetch(completion: @escaping (Error?) -> Void) {
-            handler.fetch { error in
+			handler(for: .all).fetch { error in
                 self.lock.withWriterLock {
                     if error == nil {
                         self._didFetch = true
@@ -96,11 +112,23 @@ public enum RemoteConfigsSystem {
             }
         }
 
-        public func value(for key: String) -> CustomStringConvertible? {
-            handler.value(for: key)
+		public func value(for key: String, in category: ConfigsCategory = .all) -> CustomStringConvertible? {
+			handler(for: category).value(for: key)
         }
+		 
+		public func writeValue(_ value: String?, for key: String, in category: ConfigsCategory = .all) throws {
+			try handler(for: category).writeValue(value, for: key)
+		}
+		
+		public func allKeys(in category: ConfigsCategory = .all) -> Set<String> {
+			handler(for: category).allKeys() ?? []
+		}
+		
+		public func clear(in category: ConfigsCategory = .all) throws {
+			try handler(for: category).clear()
+		}
 
-        func listen(_ observer: @escaping () -> Void) -> RemoteConfigsCancellation {
+        func listen(_ observer: @escaping () -> Void) -> ConfigsCancellation {
             let didFetch = self.didFetch
             if !didFetch, !lock.withReaderLock({ didStartFetch }) {
                 fetch { _ in }
@@ -115,15 +143,23 @@ public enum RemoteConfigsSystem {
                 observers[id] = observer
                 if !didStartListen {
                     didStartListen = true
-                    cancellation = handler.listen { [weak self] in
-                        self?.lock.withReaderLockVoid {
-                            self?.observers.values.forEach { $0() }
-                        }
+					cancellation = handler(for: .all).listen { [weak self] in
+                        self?.lock.withReaderLock {
+							self?.observers ?? [:]
+						}
+						.values
+						.forEach { $0() }
                     }
                 }
             }
-            return RemoteConfigsCancellation { self.cancel(id: id) }
+            return ConfigsCancellation { self.cancel(id: id) }
         }
+		
+		private func handler(for category: ConfigsCategory) -> ConfigsHandler {
+			MultiplexConfigsHandler(
+				handlers: handlers.compactMap { category.isSuperset(of: $0.0) ? $0.1 : nil }
+			)
+		}
 
         private func cancel(id: UUID) {
             lock.withWriterLockVoid {
@@ -141,5 +177,5 @@ public enum RemoteConfigsSystem {
 // MARK: - Sendable support helpers
 
 #if compiler(>=5.6)
-    extension RemoteConfigsSystem: Sendable {}
+    extension ConfigsSystem: Sendable {}
 #endif

@@ -1,6 +1,9 @@
 import Foundation
 
-public struct RemoteConfigsCancellation {
+@available(*, deprecated, renamed: "ConfigsCancellation")
+public typealias RemoteConfigsCancellation = ConfigsCancellation
+
+public struct ConfigsCancellation {
 
     private let _cancel: () -> Void
 

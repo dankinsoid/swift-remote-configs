@@ -12,19 +12,19 @@ final class SwiftRemoteConfigsTests: XCTestCase {
         ("testFetchIfNeeded", testFetchIfNeeded),
     ]
 
-	var handler = MockRemoteConfigsHandler()
+	var handler = InMemoryConfigsHandler()
 
 	override func setUp() {
 		super.setUp()
-        RemoteConfigsSystem.bootstrapInternal(self.handler)
+        ConfigsSystem.bootstrapInternal(self.handler)
 	}
 
 	func testReadDefaultValue() {
 		// Act
-        let value = RemoteConfigs().testKey
+        let value = Configs().testKey
 
 		// Assert
-        XCTAssertEqual(value, RemoteConfigs.Keys().testKey.defaultValue())
+        XCTAssertEqual(value, Configs.Keys().testKey.defaultValue())
 	}
 
     func testReadValue() {
@@ -32,7 +32,7 @@ final class SwiftRemoteConfigsTests: XCTestCase {
         self.handler.set("value", for: \.testKey)
 
         // Act
-        let value = RemoteConfigs().testKey
+        let value = Configs().testKey
 
         // Assert
         XCTAssertEqual(value, "value")
@@ -40,7 +40,7 @@ final class SwiftRemoteConfigsTests: XCTestCase {
 
     func testRewriteValue() {
         // Act
-        let value = RemoteConfigs().with(\.testKey, "value").testKey
+        let value = Configs().with(\.testKey, "value").testKey
         
         // Assert
         XCTAssertEqual(value, "value")
@@ -49,7 +49,7 @@ final class SwiftRemoteConfigsTests: XCTestCase {
     func testListen() {
         // Arrange
         var fetched = false
-        RemoteConfigs().listen { _ in
+        Configs().listen { _ in
             fetched = true
         }
         
@@ -62,7 +62,7 @@ final class SwiftRemoteConfigsTests: XCTestCase {
     
     func testDidFetch() async throws {
         // Arrange
-        let remoteConfigs = RemoteConfigs()
+        let remoteConfigs = Configs()
         
         // Act
         let didFetch = remoteConfigs.didFetch
@@ -79,7 +79,7 @@ final class SwiftRemoteConfigsTests: XCTestCase {
     
     func testFetchIfNeeded() async throws {
         // Arrange
-        let remoteConfigs = RemoteConfigs()
+        let remoteConfigs = Configs()
         
         // Act
         self.handler.values = ["key": "value"]
@@ -90,7 +90,7 @@ final class SwiftRemoteConfigsTests: XCTestCase {
     }
 }
 
-private extension RemoteConfigs.Keys {
+private extension Configs.Keys {
 
     var testKey: Key<String> {
         Key("key", default: "defaultValue")

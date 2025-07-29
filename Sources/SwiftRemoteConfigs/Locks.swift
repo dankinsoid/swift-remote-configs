@@ -46,7 +46,7 @@ import Musl
 /// of lock is safe to use with `libpthread`-based threading models, such as the
 /// one used by NIO. On Windows, the lock is based on the substantially similar
 /// `SRWLOCK` type.
-public final class ReadWriteLock {
+final class ReadWriteLock {
 	#if canImport(WASILibc)
 	// WASILibc is single threaded, provides no locks
 	#elseif os(Windows)
@@ -136,7 +136,7 @@ public final class ReadWriteLock {
 	}
 }
 
-public extension ReadWriteLock {
+extension ReadWriteLock {
 	/// Acquire the reader lock for the duration of the given block.
 	///
 	/// This convenience method should be preferred to `lockRead` and `unlock`

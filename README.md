@@ -24,14 +24,14 @@ import SwiftRemoteConfigs
 
 2. let's define a key
 ```swift
-public extension RemoteConfigs.Keys {
+public extension Configs.Keys {
     var showAd: Key<UUID> { Key("show-ad", default: false) }
 }
 ```
 
-3. we need to create a RemoteConfigs
+3. we need to create a Configs
 ```swift
-let remoteConfigs = RemoteConfigs()
+let remoteConfigs = Configs()
 ```
 
 4. we're now ready to use it
@@ -41,22 +41,22 @@ let id = remoteConfigs.userID
 
 ## The core concepts
 
-### RemoteConfigs
-`RemoteConfigs` are used to read configs and therefore the most important type in SwiftRemoteConfigs, so their use should be as simple as possible.
+### Configs
+`Configs` are used to read configs and therefore the most important type in SwiftRemoteConfigs, so their use should be as simple as possible.
 
-## On the implementation of a remote configs backend (a RemoteConfigsHandler)
+## On the implementation of a remote configs backend (a ConfigsHandler)
 Note: If you don't want to implement a custom remote configs backend, everything in this section is probably not very relevant, so please feel free to skip.
 
 To become a compatible remote configs backend that all SwiftRemoteConfigs consumers can use, you need to do two things: 
-1. Implement a type (usually a struct) that implements RemoteConfigsHandler, a protocol provided by SwiftRemoteConfigs
+1. Implement a type (usually a struct) that implements ConfigsHandler, a protocol provided by SwiftRemoteConfigs
 2. Instruct SwiftRemoteConfigs to use your remote configs backend implementation.
 
-an RemoteConfigsHandler or remote configs backend implementation is anything that conforms to the following protocol
+an ConfigsHandler or remote configs backend implementation is anything that conforms to the following protocol
 ```swift
-public protocol RemoteConfigsHandler {
+public protocol ConfigsHandler {
 
     func fetch(completion: @escaping (Error?) -> Void)
-    func listen(_ listener: @escaping () -> Void) -> RemoteConfigsCancellation?
+    func listen(_ listener: @escaping () -> Void) -> ConfigsCancellation?
     func value(for key: String) -> String?
 }
 ```
@@ -65,7 +65,7 @@ Where `value(for key: String)` is a function that returns a value for a given ke
 Instructing SwiftRemoteConfigs to use your remote configs backend as the one the whole application (including all libraries) should use is very simple:
 
 ```swift
-RemoteConfigsSystem.bootstrap(MyRemoteConfigs())
+ConfigsSystem.bootstrap(MyRemoteConfigs())
 ```
 
 ## Installation
@@ -92,7 +92,7 @@ $ swift build
 ```
 
 ## Implementations
-There are a few implementations of RemoteConfigsHandler that you can use in your application:
+There are a few implementations of ConfigsHandler that you can use in your application:
 
 - [Firebase Remote Configs](https://github.com/dankinsoid/swift-firebase-tools)
 
