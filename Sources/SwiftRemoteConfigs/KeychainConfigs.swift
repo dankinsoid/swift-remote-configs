@@ -59,7 +59,7 @@ import Foundation
 				kSecReturnRef as String: kCFBooleanTrue!,
 				kSecMatchLimit as String: kSecMatchLimitAll,
 			]
-			
+
 			if iCloudSync {
 				query[kSecAttrSynchronizable as String] = kCFBooleanTrue
 			}
@@ -220,11 +220,11 @@ import Foundation
 
 		private func configureAccess(query: inout [String: Any]) {
 			query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-			
+
 			if iCloudSync {
 				query[kSecAttrSynchronizable as String] = kCFBooleanTrue
 			}
-			
+
 			#if os(macOS)
 				if #available(macOS 10.15, *) {
 					query[kSecUseDataProtectionKeychain as String] = true
@@ -279,7 +279,7 @@ import Foundation
 				completion(error)
 				NotificationCenter.default.removeObserver(observer)
 			}
-			
+
 			deinit {
 				let observer = lock.withLock { self.observer }
 				if let observer {

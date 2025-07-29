@@ -95,19 +95,19 @@ public enum ConfigsSystem {
         }
 
         func fetch(completion: @escaping (Error?) -> Void) {
-			lock.withWriterLock {
-				didStartFetch = true
-			}
+            lock.withWriterLock {
+                didStartFetch = true
+            }
             handler(for: .all).fetch { [weak self] error in
                 self?.lock.withWriterLock { () -> [() -> Void] in
-					self?.didStartFetch = false
+                    self?.didStartFetch = false
                     if error == nil {
                         self?._didFetch = true
-						return (self?.observers.values).map { Array($0) } ?? []
+                        return (self?.observers.values).map { Array($0) } ?? []
                     }
-					return []
+                    return []
                 }
-				.forEach { $0() }
+                .forEach { $0() }
                 completion(error)
             }
         }
@@ -162,15 +162,15 @@ public enum ConfigsSystem {
         }
 
         private func cancel(id: UUID) {
-			lock.withWriterLock { () -> ConfigsCancellation? in
+            lock.withWriterLock { () -> ConfigsCancellation? in
                 observers.removeValue(forKey: id)
                 if observers.isEmpty {
-					let result = cancellation
+                    let result = cancellation
                     cancellation = nil
                     didStartListen = false
-					return result
+                    return result
                 }
-				return nil
+                return nil
             }?.cancel()
         }
     }

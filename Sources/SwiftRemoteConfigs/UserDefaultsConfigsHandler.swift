@@ -2,7 +2,6 @@ import Foundation
 
 /// A ConfigsHandler implementation backed by UserDefaults
 public final class UserDefaultsConfigsHandler: ConfigsHandler {
-
     private let userDefaults: UserDefaults
     private var observers: [UUID: () -> Void] = [:]
     private let lock = ReadWriteLock()
@@ -14,15 +13,15 @@ public final class UserDefaultsConfigsHandler: ConfigsHandler {
         self.userDefaults = userDefaults
         setupNotificationObserver()
     }
-	
-	/// Creates a UserDefaults configs handler with a specific suite
-	/// - Parameter suiteName: The suite name for UserDefaults
-	public convenience init?(suiteName: String) {
-		guard let userDefaults = UserDefaults(suiteName: suiteName) else {
-			return nil
-		}
-		self.init(userDefaults: userDefaults)
-	}
+
+    /// Creates a UserDefaults configs handler with a specific suite
+    /// - Parameter suiteName: The suite name for UserDefaults
+    public convenience init?(suiteName: String) {
+        guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+            return nil
+        }
+        self.init(userDefaults: userDefaults)
+    }
 
     deinit {
         if let observer = notificationObserver {
@@ -90,5 +89,5 @@ public final class UserDefaultsConfigsHandler: ConfigsHandler {
 }
 
 #if compiler(>=5.6)
-extension UserDefaultsConfigsHandler: @unchecked Sendable {}
+    extension UserDefaultsConfigsHandler: @unchecked Sendable {}
 #endif
