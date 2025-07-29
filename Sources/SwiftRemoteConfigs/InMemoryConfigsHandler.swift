@@ -5,7 +5,6 @@ public typealias MockRemoteConfigsHandler = InMemoryConfigsHandler
 
 /// Mock ConfigsHandler for testing
 public final class InMemoryConfigsHandler: ConfigsHandler {
-
     public var values: [String: String] {
         get {
             lock.withReaderLock { _values }
@@ -17,6 +16,7 @@ public final class InMemoryConfigsHandler: ConfigsHandler {
             }
         }
     }
+
     private var observers: [UUID: () -> Void] = [:]
     private var _values: [String: String]
     private let lock = ReadWriteLock()
@@ -37,25 +37,25 @@ public final class InMemoryConfigsHandler: ConfigsHandler {
         completion(nil)
     }
 
-	public func allKeys() -> Set<String>? {
-		Set(lock.withReaderLock { _values.keys })
-	}
+    public func allKeys() -> Set<String>? {
+        Set(lock.withReaderLock { _values.keys })
+    }
 
-	public func writeValue(_ value: String?, for key: String) throws {
-		lock.withWriterLock {
-			_values[key] = value
-			return observers.values
-		}
-		.forEach { $0() }
-	}
-	
-	public func clear() throws {
-		lock.withWriterLock {
-			_values = [:]
-			return observers.values
-		}
-		.forEach { $0() }
-	}
+    public func writeValue(_ value: String?, for key: String) throws {
+        lock.withWriterLock {
+            _values[key] = value
+            return observers.values
+        }
+        .forEach { $0() }
+    }
+
+    public func clear() throws {
+        lock.withWriterLock {
+            _values = [:]
+            return observers.values
+        }
+        .forEach { $0() }
+    }
 
     public func listen(_ observer: @escaping () -> Void) -> ConfigsCancellation? {
         let id = UUID()

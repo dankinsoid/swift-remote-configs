@@ -4,7 +4,6 @@ import Foundation
 public typealias RemoteConfigsCancellation = ConfigsCancellation
 
 public struct ConfigsCancellation {
-
     private let _cancel: () -> Void
 
     public init(_ cancel: @escaping () -> Void) {

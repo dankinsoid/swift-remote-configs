@@ -7,8 +7,7 @@ public typealias RemoteConfigsSystem = ConfigsSystem
 /// configured. `ConfigsSystem` is set up just once in a given program to set up the desired remote configs backend
 /// implementation.
 public enum ConfigsSystem {
-
-	private static let _handler = HandlerBox([.all: NOOPConfigsHandler.instance])
+    private static let _handler = HandlerBox([.all: NOOPConfigsHandler.instance])
 
     /// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
     /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
@@ -17,18 +16,18 @@ public enum ConfigsSystem {
     /// - parameters:
     ///     - handler: The desired remote configs backend implementation.
     public static func bootstrap(_ handler: ConfigsHandler) {
-		bootstrap([.all: handler])
+        bootstrap([.all: handler])
     }
 
-	/// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
- /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
- /// lead to undefined behaviour, most likely a crash.
- ///
- /// - parameters:
- ///     - handler: The desired remote configs backend implementation.
- public static func bootstrap(_ handlers: [ConfigsCategory: ConfigsHandler]) {
-	 _handler.replaceHandler(handlers, validate: true)
- }
+    /// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
+    /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
+    /// lead to undefined behaviour, most likely a crash.
+    ///
+    /// - parameters:
+    ///     - handler: The desired remote configs backend implementation.
+    public static func bootstrap(_ handlers: [ConfigsCategory: ConfigsHandler]) {
+        _handler.replaceHandler(handlers, validate: true)
+    }
 
     /// for our testing we want to allow multiple bootstrapping
     static func bootstrapInternal(_ handlers: [ConfigsCategory: ConfigsHandler]) {
@@ -49,7 +48,6 @@ public enum ConfigsSystem {
     }
 
     private final class HandlerBox {
-	
         private let lock = ReadWriteLock()
         fileprivate var handler: Handler
         private var initialized = false
@@ -78,7 +76,6 @@ public enum ConfigsSystem {
     }
 
     public final class Handler {
-
         var didFetch: Bool {
             lock.withReaderLock {
                 _didFetch
@@ -87,18 +84,18 @@ public enum ConfigsSystem {
 
         private let lock = ReadWriteLock()
         private var _didFetch = false
-		private let handlers: [(ConfigsCategory, ConfigsHandler)]
+        private let handlers: [(ConfigsCategory, ConfigsHandler)]
         private var observers: [UUID: () -> Void] = [:]
         private var didStartListen = false
         private var didStartFetch = false
         private var cancellation: ConfigsCancellation?
 
         init(_ handlers: [ConfigsCategory: ConfigsHandler]) {
-			self.handlers = handlers.sorted { $0.0 < $1.0 }
+            self.handlers = handlers.sorted { $0.0 < $1.0 }
         }
 
         func fetch(completion: @escaping (Error?) -> Void) {
-			handler(for: .all).fetch { error in
+            handler(for: .all).fetch { error in
                 self.lock.withWriterLock {
                     if error == nil {
                         self._didFetch = true
@@ -112,21 +109,21 @@ public enum ConfigsSystem {
             }
         }
 
-		public func value(for key: String, in category: ConfigsCategory = .all) -> CustomStringConvertible? {
-			handler(for: category).value(for: key)
+        public func value(for key: String, in category: ConfigsCategory = .all) -> CustomStringConvertible? {
+            handler(for: category).value(for: key)
         }
-		 
-		public func writeValue(_ value: String?, for key: String, in category: ConfigsCategory = .all) throws {
-			try handler(for: category).writeValue(value, for: key)
-		}
-		
-		public func allKeys(in category: ConfigsCategory = .all) -> Set<String> {
-			handler(for: category).allKeys() ?? []
-		}
-		
-		public func clear(in category: ConfigsCategory = .all) throws {
-			try handler(for: category).clear()
-		}
+
+        public func writeValue(_ value: String?, for key: String, in category: ConfigsCategory = .all) throws {
+            try handler(for: category).writeValue(value, for: key)
+        }
+
+        public func allKeys(in category: ConfigsCategory = .all) -> Set<String> {
+            handler(for: category).allKeys() ?? []
+        }
+
+        public func clear(in category: ConfigsCategory = .all) throws {
+            try handler(for: category).clear()
+        }
 
         func listen(_ observer: @escaping () -> Void) -> ConfigsCancellation {
             let didFetch = self.didFetch
@@ -143,23 +140,23 @@ public enum ConfigsSystem {
                 observers[id] = observer
                 if !didStartListen {
                     didStartListen = true
-					cancellation = handler(for: .all).listen { [weak self] in
+                    cancellation = handler(for: .all).listen { [weak self] in
                         self?.lock.withReaderLock {
-							self?.observers ?? [:]
-						}
-						.values
-						.forEach { $0() }
+                            self?.observers ?? [:]
+                        }
+                        .values
+                        .forEach { $0() }
                     }
                 }
             }
             return ConfigsCancellation { self.cancel(id: id) }
         }
-		
-		private func handler(for category: ConfigsCategory) -> ConfigsHandler {
-			MultiplexConfigsHandler(
-				handlers: handlers.compactMap { category.isSuperset(of: $0.0) ? $0.1 : nil }
-			)
-		}
+
+        private func handler(for category: ConfigsCategory) -> ConfigsHandler {
+            MultiplexConfigsHandler(
+                handlers: handlers.compactMap { category.isSuperset(of: $0.0) ? $0.1 : nil }
+            )
+        }
 
         private func cancel(id: UUID) {
             lock.withWriterLockVoid {

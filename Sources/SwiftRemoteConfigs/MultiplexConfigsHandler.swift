@@ -5,16 +5,15 @@ public typealias MultiplexRemoteConfigsHandler = MultiplexConfigsHandler
 
 /// A pseudo configs handler that can be used to send messages to multiple other configs handlers.
 public struct MultiplexConfigsHandler: ConfigsHandler {
+    private let handlers: [ConfigsHandler]
 
-	private let handlers: [ConfigsHandler]
+    public init(handlers: [ConfigsHandler]) {
+        self.handlers = handlers
+    }
 
-	public init(handlers: [ConfigsHandler]) {
-		self.handlers = handlers
-	}
-
-	public init(_ handlers: ConfigsHandler...) {
-		self.init(handlers: handlers)
-	}
+    public init(_ handlers: ConfigsHandler...) {
+        self.init(handlers: handlers)
+    }
 
     public func value(for key: String) -> String? {
         for handler in handlers {
@@ -26,10 +25,10 @@ public struct MultiplexConfigsHandler: ConfigsHandler {
     }
 
     public func fetch(completion: @escaping (Error?) -> Void) {
-		let multiplexCompletion = MultiplexCompletion(count: handlers.count, completion: completion)
-        handlers.forEach { handler in
+        let multiplexCompletion = MultiplexCompletion(count: handlers.count, completion: completion)
+        for handler in handlers {
             handler.fetch { error in
-				multiplexCompletion.call(with: error)
+                multiplexCompletion.call(with: error)
             }
         }
     }
@@ -41,79 +40,77 @@ public struct MultiplexConfigsHandler: ConfigsHandler {
         }
     }
 
-	public func allKeys() -> Set<String>? {
-		handlers.reduce(into: Optional<Set<String>>.none) { result, handler in
-			if let keys = handler.allKeys() {
-				if result == nil {
-					result = []
-				}
-				result?.formUnion(keys)
-			}
-		}
-	}
+    public func allKeys() -> Set<String>? {
+        handlers.reduce(into: Set<String>?.none) { result, handler in
+            if let keys = handler.allKeys() {
+                if result == nil {
+                    result = []
+                }
+                result?.formUnion(keys)
+            }
+        }
+    }
 
-	public func writeValue(_ value: String?, for key: String) throws {
-		var errors: [Error] = []
-		for handler in handlers {
-			do {
-				try handler.writeValue(value, for: key)
-			} catch {
-				errors.append(error)
-			}
-		}
-		if !errors.isEmpty {
-			throw errors.count == 1 ? errors[0] : Errors(errors: errors)
-		}
-	}
-	
-	public func clear() throws {
-		var errors: [Error] = []
-		for handler in handlers {
-			do {
-				try handler.clear()
-			} catch {
-				errors.append(error)
-			}
-		}
-		if !errors.isEmpty {
-			throw errors.count == 1 ? errors[0] : Errors(errors: errors)
-		}
-	}
+    public func writeValue(_ value: String?, for key: String) throws {
+        var errors: [Error] = []
+        for handler in handlers {
+            do {
+                try handler.writeValue(value, for: key)
+            } catch {
+                errors.append(error)
+            }
+        }
+        if !errors.isEmpty {
+            throw errors.count == 1 ? errors[0] : Errors(errors: errors)
+        }
+    }
 
-	public struct Errors: Error {
+    public func clear() throws {
+        var errors: [Error] = []
+        for handler in handlers {
+            do {
+                try handler.clear()
+            } catch {
+                errors.append(error)
+            }
+        }
+        if !errors.isEmpty {
+            throw errors.count == 1 ? errors[0] : Errors(errors: errors)
+        }
+    }
 
-		public let errors: [Error?]
-	}
+    public struct Errors: Error {
+        public let errors: [Error?]
+    }
 }
 
 private final class MultiplexCompletion {
+    let lock = ReadWriteLock()
+    var count: Int
+    var errors: [Error?] = []
+    let completion: (Error?) -> Void
 
-	let lock = ReadWriteLock()
-	var count: Int
-	var errors: [Error?] = []
-	let completion: (Error?) -> Void
+    init(count: Int, completion: @escaping (Error?) -> Void) {
+        self.completion = completion
+        self.count = count
+    }
 
-	init(count: Int, completion: @escaping (Error?) -> Void) {
-		self.completion = completion
-		self.count = count
-	}
-
-	func call(with error: Error?) {
-		lock.withWriterLock {
-			count -= 1
-			if let error {
-				self.errors.append(error)
-			}
-		}
-		let (isLast, errors) = lock.withReaderLock { (count == 0, self.errors) }
-		if isLast {
-			let error: Error?
-			switch errors.count {
-			case 0: error = nil
-			case 1: error = errors[0]
-			default: error = MultiplexConfigsHandler.Errors(errors: errors)
-			}
-			completion(error)
-		}
-	}
+    func call(with error: Error?) {
+        lock.withWriterLock {
+            count -= 1
+            if let error {
+                self.errors.append(error)
+            }
+        }
+        let (isLast, errors) = lock.withReaderLock { (count == 0, self.errors) }
+        if isLast {
+            let error: Error?
+            switch errors.count {
+            case 0: error = nil
+            case 1: error = errors[0]
+            default: error = MultiplexConfigsHandler.Errors(errors: errors)
+            }
+            completion(error)
+        }
+    }
 }

@@ -1,6 +1,6 @@
 # SwiftRemoteConfigs
 SwiftRemoteConfigs is an API package which tries to establish a common API the ecosystem can use.
-To make remoteConfigs really work for real-world workloads, we need SwiftRemoteConfigs-compatible backends which load configs from the Ri
+To make SwiftRemoteConfigs really work for real-world workloads, we need SwiftRemoteConfigs-compatible backends which load configs from the Ri
 
 ## Getting Started
 

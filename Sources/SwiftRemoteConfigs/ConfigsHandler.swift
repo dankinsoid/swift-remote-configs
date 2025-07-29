@@ -8,37 +8,34 @@ public typealias RemoteConfigsHandler = ConfigsHandler
 /// This type is an implementation detail and should not normally be used, unless implementing your own configs backend.
 /// To use the SwiftRemoteConfigs API, please refer to the documentation of ``Configs``.
 public protocol ConfigsHandler: _SwiftConfigsSendableAnalyticsHandler {
-
     func fetch(completion: @escaping (Error?) -> Void)
     func listen(_ listener: @escaping () -> Void) -> ConfigsCancellation?
     func value(for key: String) -> String?
-	func writeValue(_ value: String?, for key: String) throws
-	func clear() throws
-	func allKeys() -> Set<String>?
+    func writeValue(_ value: String?, for key: String) throws
+    func clear() throws
+    func allKeys() -> Set<String>?
 }
 
-extension ConfigsHandler {
+public extension ConfigsHandler {
+    func allKeys() -> Set<String>? {
+        nil
+    }
 
-	public func allKeys() -> Set<String>? {
-		nil
-	}
+    func writeValue(_: String?, for _: String) throws {
+        throw Unsupported()
+    }
 
-	public func writeValue(_ value: String?, for key: String) throws {
-		throw Unsupported()
-	}
-
-	public func clear() throws {
-		throw Unsupported()
-	}
+    func clear() throws {
+        throw Unsupported()
+    }
 }
 
-struct Unsupported: Error {
-}
+struct Unsupported: Error {}
 
 // MARK: - Sendable support helpers
 
 #if compiler(>=5.6)
-@preconcurrency public protocol _SwiftConfigsSendableAnalyticsHandler: Sendable {}
+    @preconcurrency public protocol _SwiftConfigsSendableAnalyticsHandler: Sendable {}
 #else
-public protocol _SwiftConfigsSendableAnalyticsHandler {}
+    public protocol _SwiftConfigsSendableAnalyticsHandler {}
 #endif
