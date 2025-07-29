@@ -5,16 +5,25 @@ import Foundation
 		import UIKit
 	#endif
 
+	/// A ConfigsHandler implementation backed by iOS/macOS Keychain
 	public final class KeychainConfigsHandler: ConfigsHandler {
+		/// The keychain service identifier
 		public let service: String?
+		/// The keychain security class
 		public let secClass: SecClass
+		/// Whether to sync keychain items with iCloud
 		public let iCloudSync: Bool
 		private var observers: [UUID: () -> Void] = [:]
 		private let lock = ReadWriteLock()
 
-		/// The default Keychain token cache service.
+		/// The default Keychain configs handler
 		public static var `default` = KeychainConfigsHandler()
 
+		/// Creates a keychain configs handler
+		/// - Parameters:
+		///   - service: Optional service identifier for keychain items
+		///   - secClass: Security class for keychain items
+		///   - iCloudSync: Whether to enable iCloud Keychain synchronization
 		public init(service: String? = nil, class secClass: SecClass = .genericPassowrd, iCloudSync: Bool = false) {
 			self.service = service
 			self.secClass = secClass
@@ -141,6 +150,7 @@ import Foundation
 			.forEach { $0() }
 		}
 
+		/// Keychain security class options
 		public struct SecClass: RawRepresentable, CaseIterable {
 			public let rawValue: CFString
 

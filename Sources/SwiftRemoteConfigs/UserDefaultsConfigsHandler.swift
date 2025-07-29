@@ -8,17 +8,15 @@ public final class UserDefaultsConfigsHandler: ConfigsHandler {
     private let lock = ReadWriteLock()
     private var notificationObserver: NSObjectProtocol?
 
-    /// Initialize with custom UserDefaults and optional key prefix
-    /// - Parameters:
-    ///   - userDefaults: The UserDefaults instance to use (defaults to .standard)
+    /// Creates a UserDefaults configs handler
+    /// - Parameter userDefaults: The UserDefaults instance to use
     public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
         setupNotificationObserver()
     }
 	
-	/// Initialize with a specific UserDefaults suite name
+	/// Creates a UserDefaults configs handler with a specific suite
 	/// - Parameter suiteName: The suite name for UserDefaults
-	/// - Returns: An optional UserDefaultsConfigsHandler if the suite exists
 	public convenience init?(suiteName: String) {
 		guard let userDefaults = UserDefaults(suiteName: suiteName) else {
 			return nil

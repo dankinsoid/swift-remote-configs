@@ -3,7 +3,9 @@ import Foundation
 @available(*, deprecated, renamed: "NOOPConfigsHandler")
 public typealias NOOPRemoteConfigsHandler = NOOPConfigsHandler
 
+/// A no-operation ConfigsHandler that does nothing
 public struct NOOPConfigsHandler: ConfigsHandler {
+    /// Shared instance of the NOOP handler
     public static let instance = NOOPConfigsHandler()
 
     public init() {}

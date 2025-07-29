@@ -3,8 +3,9 @@ import Foundation
 @available(*, deprecated, renamed: "InMemoryConfigsHandler")
 public typealias MockRemoteConfigsHandler = InMemoryConfigsHandler
 
-/// Mock ConfigsHandler for testing
+/// In-memory ConfigsHandler for testing and caching
 public final class InMemoryConfigsHandler: ConfigsHandler {
+    /// The configuration values stored in memory
     public var values: [String: String] {
         get {
             lock.withReaderLock { _values }
@@ -21,6 +22,8 @@ public final class InMemoryConfigsHandler: ConfigsHandler {
     private var _values: [String: String]
     private let lock = ReadWriteLock()
 
+    /// Creates an in-memory configs handler
+    /// - Parameter values: Initial configuration values
     public init(_ values: [String: String] = [:]) {
         _values = values
     }
@@ -29,6 +32,7 @@ public final class InMemoryConfigsHandler: ConfigsHandler {
         values[key]
     }
 
+    /// Sets a value using a key path
     public func set<Value>(_ value: Value, for keyPath: KeyPath<Configs.Keys, Configs.Keys.Key<Value>>) where Value: CustomStringConvertible {
         values[Configs.Keys()[keyPath: keyPath].name] = value.description
     }

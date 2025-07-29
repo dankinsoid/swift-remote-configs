@@ -3,14 +3,16 @@ import Foundation
 @available(*, deprecated, renamed: "MultiplexConfigsHandler")
 public typealias MultiplexRemoteConfigsHandler = MultiplexConfigsHandler
 
-/// A pseudo configs handler that can be used to send messages to multiple other configs handlers.
+/// A ConfigsHandler that multiplexes operations across multiple handlers
 public struct MultiplexConfigsHandler: ConfigsHandler {
     private let handlers: [ConfigsHandler]
 
+    /// Creates a multiplex handler with an array of handlers
     public init(handlers: [ConfigsHandler]) {
         self.handlers = handlers
     }
 
+    /// Creates a multiplex handler with variadic handlers
     public init(_ handlers: ConfigsHandler...) {
         self.init(handlers: handlers)
     }
@@ -79,6 +81,7 @@ public struct MultiplexConfigsHandler: ConfigsHandler {
         }
     }
 
+    /// Error type that wraps multiple errors from handlers
     public struct Errors: Error {
         public let errors: [Error?]
     }
