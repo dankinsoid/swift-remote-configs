@@ -269,6 +269,13 @@ import Foundation
 				completion(error)
 				NotificationCenter.default.removeObserver(observer)
 			}
+			
+			deinit {
+				let observer = lock.withLock { self.observer }
+				if let observer {
+					NotificationCenter.default.removeObserver(observer)
+				}
+			}
 		}
 
 		private struct TimeoutError: Error {}

@@ -2,8 +2,8 @@ import Foundation
 
 /// A ConfigsHandler implementation backed by UserDefaults
 public final class UserDefaultsConfigsHandler: ConfigsHandler {
+
     private let userDefaults: UserDefaults
-    private let keyPrefix: String
     private var observers: [UUID: () -> Void] = [:]
     private let lock = ReadWriteLock()
     private var notificationObserver: NSObjectProtocol?
@@ -11,13 +11,20 @@ public final class UserDefaultsConfigsHandler: ConfigsHandler {
     /// Initialize with custom UserDefaults and optional key prefix
     /// - Parameters:
     ///   - userDefaults: The UserDefaults instance to use (defaults to .standard)
-    ///   - keyPrefix: Optional prefix for all keys to avoid conflicts
-    public init(userDefaults: UserDefaults = .standard, keyPrefix: String = "") {
+    public init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
-        self.keyPrefix = keyPrefix
-
         setupNotificationObserver()
     }
+	
+	/// Initialize with a specific UserDefaults suite name
+	/// - Parameter suiteName: The suite name for UserDefaults
+	/// - Returns: An optional UserDefaultsConfigsHandler if the suite exists
+	public convenience init?(suiteName: String) {
+		guard let userDefaults = UserDefaults(suiteName: suiteName) else {
+			return nil
+		}
+		self.init(userDefaults: userDefaults)
+	}
 
     deinit {
         if let observer = notificationObserver {
@@ -36,12 +43,8 @@ public final class UserDefaultsConfigsHandler: ConfigsHandler {
     }
 
     private func notifyObservers() {
-        let currentObservers = lock.withReaderLock { Array(observers.values) }
+        let currentObservers = lock.withReaderLock { observers.values }
         currentObservers.forEach { $0() }
-    }
-
-    private func prefixedKey(_ key: String) -> String {
-        keyPrefix.isEmpty ? key : "\(keyPrefix)\(key)"
     }
 
     // MARK: - ConfigsHandler Implementation
@@ -65,37 +68,29 @@ public final class UserDefaultsConfigsHandler: ConfigsHandler {
     }
 
     public func value(for key: String) -> String? {
-        let prefixedKey = prefixedKey(key)
-        return userDefaults.string(forKey: prefixedKey)
+        userDefaults.string(forKey: key)
     }
 
     public func writeValue(_ value: String?, for key: String) throws {
-        let prefixedKey = prefixedKey(key)
-
         if let value = value {
-            userDefaults.set(value, forKey: prefixedKey)
+            userDefaults.set(value, forKey: key)
         } else {
-            userDefaults.removeObject(forKey: prefixedKey)
+            userDefaults.removeObject(forKey: key)
         }
     }
 
     public func clear() throws {
         let keys = allKeys() ?? Set()
         for key in keys {
-            let prefixedKey = prefixedKey(key)
-            userDefaults.removeObject(forKey: prefixedKey)
+            userDefaults.removeObject(forKey: key)
         }
     }
 
     public func allKeys() -> Set<String>? {
-        let allUserDefaultsKeys = Set(userDefaults.dictionaryRepresentation().keys)
-
-        if keyPrefix.isEmpty {
-            return allUserDefaultsKeys
-        } else {
-            return Set(allUserDefaultsKeys
-                .filter { $0.hasPrefix(keyPrefix) }
-                .map { String($0.dropFirst(keyPrefix.count)) })
-        }
+        Set(userDefaults.dictionaryRepresentation().keys)
     }
 }
+
+#if compiler(>=5.6)
+extension UserDefaultsConfigsHandler: @unchecked Sendable {}
+#endif
