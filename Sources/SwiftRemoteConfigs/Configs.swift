@@ -3,14 +3,14 @@ import Foundation
 @available(*, deprecated, renamed: "Configs")
 public typealias RemoteConfigs = Configs
 
-/// A structure for handling remote configs and reading them from a remote configs provider.
+/// A structure for handling configs and reading them from a configs provider.
 @dynamicMemberLookup
 public struct Configs {
-    /// The remote configs handler responsible for querying and storing values.
+    /// The configs handler responsible for querying and storing values.
     public let handler: ConfigsSystem.Handler
     private var values: [String: Any] = [:]
 
-    /// Initializes the `Configs` instance with the default remote configs handler.
+    /// Initializes the `Configs` instance with the default configs handler.
     public init() {
         self.handler = ConfigsSystem.handler
     }

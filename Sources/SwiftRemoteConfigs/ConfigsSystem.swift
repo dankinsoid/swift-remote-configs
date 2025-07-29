@@ -3,28 +3,28 @@ import Foundation
 @available(*, deprecated, renamed: "ConfigsSystem")
 public typealias RemoteConfigsSystem = ConfigsSystem
 
-/// The `ConfigsSystem` is a global facility where the default remote configs backend implementation (`ConfigsHandler`) can be
-/// configured. `ConfigsSystem` is set up just once in a given program to set up the desired remote configs backend
+/// The `ConfigsSystem` is a global facility where the default configs backend implementation (`ConfigsHandler`) can be
+/// configured. `ConfigsSystem` is set up just once in a given program to set up the desired configs backend
 /// implementation.
 public enum ConfigsSystem {
     private static let _handler = HandlerBox([.all: NOOPConfigsHandler.instance])
 
-    /// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
+    /// `bootstrap` is an one-time configuration function which globally selects the desired configs backend
     /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
     /// lead to undefined behaviour, most likely a crash.
     ///
     /// - parameters:
-    ///     - handler: The desired remote configs backend implementation.
+    ///     - handler: The desired configs backend implementation.
     public static func bootstrap(_ handler: ConfigsHandler) {
         bootstrap([.all: handler])
     }
 
-    /// `bootstrap` is an one-time configuration function which globally selects the desired remote configs backend
+    /// `bootstrap` is an one-time configuration function which globally selects the desired configs backend
     /// implementation. `bootstrap` can be called at maximum once in any given program, calling it more than once will
     /// lead to undefined behaviour, most likely a crash.
     ///
     /// - parameters:
-    ///     - handler: The desired remote configs backend implementation.
+    ///     - handler: The desired configs backend implementation.
     public static func bootstrap(_ handlers: [ConfigsCategory: ConfigsHandler]) {
         _handler.replaceHandler(handlers, validate: true)
     }
@@ -58,7 +58,7 @@ public enum ConfigsSystem {
 
         func replaceHandler(_ factory: [ConfigsCategory: ConfigsHandler], validate: Bool) {
             withWriterLock {
-                precondition(!validate || !self.initialized, "remote configs system can only be initialized once per process.")
+                precondition(!validate || !self.initialized, "configs system can only be initialized once per process.")
                 self.handler = Handler(factory)
                 self.initialized = true
             }

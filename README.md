@@ -5,7 +5,7 @@ To make SwiftRemoteConfigs really work for real-world workloads, we need SwiftRe
 ## Getting Started
 
 ### Adding the dependency
-To depend on the remote configs API package, you need to declare your dependency in your Package.swift:
+To depend on the configs API package, you need to declare your dependency in your Package.swift:
 ```swift
 .package(url: "https://github.com/dankinsoid/swift-remote-configs.git", from: "1.0.0"),
 ```
@@ -44,14 +44,14 @@ let id = remoteConfigs.userID
 ### Configs
 `Configs` are used to read configs and therefore the most important type in SwiftRemoteConfigs, so their use should be as simple as possible.
 
-## On the implementation of a remote configs backend (a ConfigsHandler)
-Note: If you don't want to implement a custom remote configs backend, everything in this section is probably not very relevant, so please feel free to skip.
+## On the implementation of a configs backend (a ConfigsHandler)
+Note: If you don't want to implement a custom configs backend, everything in this section is probably not very relevant, so please feel free to skip.
 
-To become a compatible remote configs backend that all SwiftRemoteConfigs consumers can use, you need to do two things: 
+To become a compatible configs backend that all SwiftRemoteConfigs consumers can use, you need to do two things: 
 1. Implement a type (usually a struct) that implements ConfigsHandler, a protocol provided by SwiftRemoteConfigs
-2. Instruct SwiftRemoteConfigs to use your remote configs backend implementation.
+2. Instruct SwiftRemoteConfigs to use your configs backend implementation.
 
-an ConfigsHandler or remote configs backend implementation is anything that conforms to the following protocol
+an ConfigsHandler or configs backend implementation is anything that conforms to the following protocol
 ```swift
 public protocol ConfigsHandler {
 
@@ -62,7 +62,7 @@ public protocol ConfigsHandler {
 ```
 Where `value(for key: String)` is a function that returns a value for a given key.
 
-Instructing SwiftRemoteConfigs to use your remote configs backend as the one the whole application (including all libraries) should use is very simple:
+Instructing SwiftRemoteConfigs to use your configs backend as the one the whole application (including all libraries) should use is very simple:
 
 ```swift
 ConfigsSystem.bootstrap(MyRemoteConfigs())
