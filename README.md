@@ -1,10 +1,32 @@
-# SwiftRemoteConfigs
+# ⚠️ REPOSITORY MOVED
+
+**This repository has been renamed and moved to: [swift-configs](https://github.com/dankinsoid/swift-configs)**
+
+**Please update your Package.swift dependencies:**
+```diff
+- .package(url: "https://github.com/dankinsoid/swift-remote-configs.git", from: "1.0.0"),
++ .package(url: "https://github.com/dankinsoid/swift-configs.git", from: "1.0.0"),
+```
+
+This repository will be archived soon. All future development and releases will happen in the new repository.
+
+---
+
+# SwiftRemoteConfigs (DEPRECATED)
 SwiftRemoteConfigs is an API package which tries to establish a common API the ecosystem can use.
 To make SwiftRemoteConfigs really work for real-world workloads, we need SwiftRemoteConfigs-compatible backends which load configs from the Ri
 
 ## Getting Started
 
-### Adding the dependency
+### Adding the dependency (DEPRECATED - Use swift-configs instead)
+**⚠️ This dependency is deprecated. Use the new repository instead:**
+```swift
+.package(url: "https://github.com/dankinsoid/swift-configs.git", from: "1.0.0"),
+```
+
+<details>
+<summary>Old deprecated dependency (will be removed)</summary>
+
 To depend on the configs API package, you need to declare your dependency in your Package.swift:
 ```swift
 .package(url: "https://github.com/dankinsoid/swift-remote-configs.git", from: "1.0.0"),
@@ -15,6 +37,7 @@ and to your application/library target, add "SwiftRemoteConfigs" to your depende
     .product(name: "SwiftRemoteConfigs", package: "swift-remote-configs")
 ],
 ```
+</details>
 
 ### Let's read a config
 1. let's import the SwiftRemoteConfigs API package
@@ -90,6 +113,21 @@ let package = Package(
 ```ruby
 $ swift build
 ```
+
+## Migration Guide
+
+**To migrate to the new repository:**
+
+1. **Update Package.swift:**
+```diff
+dependencies: [
+-    .package(url: "https://github.com/dankinsoid/swift-remote-configs.git", from: "1.0.0"),
++    .package(url: "https://github.com/dankinsoid/swift-configs.git", from: "1.0.0"),
+]
+```
+
+2. **No code changes needed** - All APIs remain the same
+3. **Update any documentation** or references to use the new repository URL
 
 ## Implementations
 There are a few implementations of ConfigsHandler that you can use in your application:
